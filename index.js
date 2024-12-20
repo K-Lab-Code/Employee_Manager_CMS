@@ -1,6 +1,6 @@
-const inquirer = require("inquirer");
+import inquirer from 'inquirer';
 //const pg = require('pg');
-const questionFunctions = require('./assets/modules/questionFunctions');
+import questionFunctions from './assets/modules/questionFunctions.js';
 
 //Set Up
 let run = true;//used to keep program running till they pick quit
