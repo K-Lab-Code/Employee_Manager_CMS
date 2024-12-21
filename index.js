@@ -26,7 +26,6 @@ function whatNext(){
         if (answer == 'Quit'){
             process.exit(1);
         } else {
-            console.log(answer);
             questionFunctions[answer](whatNext);//will run code for what ever choice you picked
             
         }
