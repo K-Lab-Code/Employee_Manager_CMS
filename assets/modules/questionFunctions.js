@@ -33,77 +33,70 @@ let getManagerID = {};
 let getFirstName = {};
 let getLastName = {};
 let getDepartmentID = {};
+let getIDToManager = {};
 //private functions
+async function idToManager() {
+  const result = await pool.query(`select * from employee`);
+  getIDToManager = {};
+  for (const row of result.rows) {
+    getIDToManager[row.id] = `${row.first_name} ${row.last_name}`;
+  }
+  return;
+}
 async function rolesList() {
-  await pool.query(`select * from role`, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      getRoleID = {};
-      const list = [];
-      for (const row of result.rows) {
-        getDepartmentID[row.title] = row.id;
-        list.push(row.title);
-      }
-      return list;
-    }
-  });
+  const result = await pool.query(`select * from role`);
+  getRoleID = {};
+  const list = [];
+  for (const row of result.rows) {
+    getRoleID[row.title] = row.id;
+    list.push(row.title);
+  }
+  console.log();
+  return list;
 }
 async function managerList() {
-  await pool.query(`select * from employee`, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      getManagerID = {};
-      const list = [];
-      for (const row of result.rows) {
-        getManagerID[`${row.first_name} ${row.last_name}`] = row.id;
-        list.push(`${row.first_name} ${row.last_name}`);
-      }
-      return list;
-    }
-  });
+  const result = await pool.query(`select * from employee`);
+  getManagerID = {};
+  const list = [];
+  for (const row of result.rows) {
+    getManagerID[`${row.first_name} ${row.last_name}`] = row.id;
+    list.push(`${row.first_name} ${row.last_name}`);
+  }
+  return list;
 }
 async function employeeList() {
-  await pool.query(`select * from employee`, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      getFirstName = {};
-      getLastName = {};
-      const list = [];
-      for (const row of result.rows) {
-        getFirstName[`${row.first_name} ${row.last_name}`] = row.first_name;
-        getLastName[`${row.first_name} ${row.last_name}`] = row.last_name;
-        list.push(`${row.first_name} ${row.last_name}`);
-      }
-      return list;
-    }
-  });
+  const result = await pool.query(`select * from employee`);
+  getFirstName = {};
+  getLastName = {};
+  const list = [];
+  for (const row of result.rows) {
+    getFirstName[`${row.first_name} ${row.last_name}`] = row.first_name;
+    getLastName[`${row.first_name} ${row.last_name}`] = row.last_name;
+    list.push(`${row.first_name} ${row.last_name}`);
+  }
+  return list;
 }
 async function departmentList() {
-  await pool.query(`select * from department`, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      getDepartmentID = {};
-      const list = [];
-      for (const row of result.rows) {
-        getDepartmentID[row.name] = row.id;
-        list.push(row.name);
-      }
-      return list;
-    }
-  });
+  const result = await pool.query(`select * from department`);
+  getDepartmentID = {};
+  const list = [];
+  for (const row of result.rows) {
+    getDepartmentID[row.name] = row.id;
+    list.push(row.name);
+  }
+  return list;
 }
 //IMPORTANT NOTE: the functions break normal naming convention because it makes it easy to call them from object by inputing them into object and calling that function.
 //functions for questionFunctions module
 exp.ViewAllEmployees = async function (next) {
-  await pool.query(`select employee.id, employee.first_name, employee.last_name, role.title, department.name as department, role.salary, employee.manager_id as manager from employee join role on employee.role_id = role.id join department on role.department_id = department.id`, (err, result) => {
+  await idToManager();
+  pool.query(`select employee.id, employee.first_name, employee.last_name, role.title, department.name as department, role.salary, employee.manager_id as manager from employee join role on employee.role_id = role.id join department on role.department_id = department.id order by employee.id asc`, (err, result) => {
     if (err) {
       console.log(err);
     } else {
-      console.log();
+      for (let i = 0; i < result.rows.length; i++) {
+        result.rows[i].manager = getIDToManager[result.rows[i].manager] ?? null;
+      }
       console.table(result.rows);
     }
     next();
@@ -166,11 +159,10 @@ exp.UpdateEmployeeRole = async function (next) {
   });
 };
 exp.ViewAllRoles = async function (next) {
-  await pool.query(`select * from role`, (err, result) => {
+  pool.query(`select role.id, role.title, department.name as department, role.salary from role left join department on department.id = role.department_id`, (err, result) => {
     if (err) {
       console.log(err);
     } else {
-      console.log();
       console.table(result.rows);
     }
     next();
@@ -193,22 +185,21 @@ exp.AddRole = async function (next) {
       choices: await departmentList()
     }
   ]).then((answers) => {
-    pool.query(`insert into role (title, salary, department) values ($1, $2, $3)`, [answers.title, Number(answers.salary), getDepartmentID[answers.department]], (err, result) => {
+    pool.query(`insert into role (title, salary, department_id) values ($1, $2, $3)`, [answers.title, Number(answers.salary), getDepartmentID[answers.department]], (err, result) => {
       if (err) {
         console.log(err);
       } else {
-        console.log(`Added ${answers.department} to the database`);
+        console.log(`Added ${answers.title} to the database`);
       }
       next();
     });
   });
 };
 exp.ViewAllDepartments = async function (next) {
-  await pool.query(`select * from department`, (err, result) => {
+  pool.query(`select * from department`, (err, result) => {
     if (err) {
       console.log(err);
     } else {
-      console.log();
       console.table(result.rows);
 
     }
@@ -227,7 +218,7 @@ exp.AddDepartment = async function (next) {
       if (err) {
         console.log(err);
       } else {
-        console.log(`Added ${answers.department} to the database`);
+        console.log(`Added ${answers.name} to the database`);
       }
       next();
     });
