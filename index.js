@@ -3,9 +3,8 @@ import inquirer from 'inquirer';
 import questionFunctions from './assets/modules/questionFunctions.js';
 
 //Set Up
-let run = true;//used to keep program running till they pick quit
 //whatNext function ask users which choice they want to do and then runs that function based on there answer
-async function whatNext(){
+function whatNext(){
     inquirer.prompt([
         {
             type:'list',
@@ -22,19 +21,20 @@ async function whatNext(){
                 'Quit'
             ]
         }
-    ]).then(async (answers)=>{
-        const answer = answers.myPick.split('').join();//removes spaces so that it can be used as function names
+    ]).then((answers)=>{
+        const answer = answers.myPick.split(' ').join('');//removes spaces so that it can be used as function names
         if (answer == 'Quit'){
-            run = false;//if you picked quit then it sets run to false
+            process.exit(1);
         } else {
-            await questionFunctions[answer]();//will run code for what ever choice you picked
+            console.log(answer);
+            questionFunctions[answer](whatNext);//will run code for what ever choice you picked
+            
         }
-    })
+    });
 }
+
+
 //start function starts program
-(async function start() {
-    await questionFunctions.connectToDb();
-    while(run){
-        await whatNext();
-    }
-})();
+await questionFunctions.connectToDb();
+whatNext();
+
